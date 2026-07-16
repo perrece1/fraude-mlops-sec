@@ -1,0 +1,33 @@
+name: CI/CD DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  security-scan:
+    name: Build and Scan Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Descarga el código de tu repositorio en la máquina virtual de GitHub
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Construye tu contenedor Docker usando tu Dockerfile
+    - name: Build Docker Image
+      run: |
+        docker build -t mi-ia-fraude:${{ github.sha }} .
+
+    # 3. Escanea la imagen con Trivy (El bloque de seguridad)
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'mi-ia-fraude:${{ github.sha }}'
+        format: 'table'
+        exit-code: '1'          # ¡Súper importante! Si encuentra algo CRÍTICO o ALTO, detiene el pipeline (da error 1)
+        ignore-unfixed: true    # Ignora vulnerabilidades que no tienen solución todavía (evita falsos bloqueos)
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
